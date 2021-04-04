@@ -46,7 +46,7 @@ class FaceModel:
 
     def get_input(self, face_img):
         bboxs, pts5 = self.detector.detect(face_img, threshold=0.8)
-        print(bboxs)
+        # print(bboxs)
         if bboxs.shape[0] == 0:
             return None, None
         bboxs = bboxs[:, 0:4]

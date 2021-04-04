@@ -102,49 +102,49 @@ class Handler:
         self.model = model
         self.image_size = image_size
 
-    def get(self, img, bboxes, get_all=False):
+    def get(self, img, bbox, get_all=False):
         out = []
         det_im, det_scale = square_crop(img, self.det_size)
         # bboxes, _ = self.detector.detect(det_im)
-        if bboxes.shape[0] == 0:
-            return out
-        bboxes /= det_scale
-        if not get_all:
-            areas = []
-            for i in range(bboxes.shape[0]):
-                x = bboxes[i]
-                area = (x[2] - x[0]) * (x[3] - x[1])
-                areas.append(area)
-            m = np.argsort(areas)[-1]
-            bboxes = bboxes[m:m + 1]
-        for i in range(bboxes.shape[0]):
-            bbox = bboxes[i]
-            input_blob = np.zeros((1, 3) + self.image_size, dtype=np.float32)
-            w, h = (bbox[2] - bbox[0]), (bbox[3] - bbox[1])
-            center = (bbox[2] + bbox[0]) / 2, (bbox[3] + bbox[1]) / 2
-            rotate = 0
-            _scale = self.image_size[0] * 2 / 3.0 / max(w, h)
-            rimg, M = transform(img, center, self.image_size[0], _scale,
-                                rotate)
-            rimg = cv2.cvtColor(rimg, cv2.COLOR_BGR2RGB)
-            rimg = np.transpose(rimg, (2, 0, 1))  #3*112*112, RGB
-            input_blob[0] = rimg
-            data = mx.nd.array(input_blob)
-            db = mx.io.DataBatch(data=(data, ))
-            self.model.forward(db, is_train=False)
-            pred = self.model.get_outputs()[-1].asnumpy()[0]
-            if pred.shape[0] >= 3000:
-                pred = pred.reshape((-1, 3))
-            else:
-                pred = pred.reshape((-1, 2))
-            pred[:, 0:2] += 1
-            pred[:, 0:2] *= (self.image_size[0] // 2)
-            if pred.shape[1] == 3:
-                pred[:, 2] *= (self.image_size[0] // 2)
+        # if bboxes.shape[0] == 0:
+        #     return out
+        # bboxes /= det_scale
+        # if not get_all:
+        #     areas = []
+        #     for i in range(bboxes.shape[0]):
+        #         x = bboxes[i]
+        #         area = (x[2] - x[0]) * (x[3] - x[1])
+        #         areas.append(area)
+        #     m = np.argsort(areas)[-1]
+        #     bboxes = bboxes[m:m + 1]
+        # for i in range(bboxes.shape[0]):
+        #     bbox = bboxes[i]
+        input_blob = np.zeros((1, 3) + self.image_size, dtype=np.float32)
+        w, h = (bbox[2] - bbox[0]), (bbox[3] - bbox[1])
+        center = (bbox[2] + bbox[0]) / 2, (bbox[3] + bbox[1]) / 2
+        rotate = 0
+        _scale = self.image_size[0] * 2 / 3.0 / max(w, h)
+        rimg, M = transform(img, center, self.image_size[0], _scale,
+                            rotate)
+        rimg = cv2.cvtColor(rimg, cv2.COLOR_BGR2RGB)
+        rimg = np.transpose(rimg, (2, 0, 1))  #3*112*112, RGB
+        input_blob[0] = rimg
+        data = mx.nd.array(input_blob)
+        db = mx.io.DataBatch(data=(data, ))
+        self.model.forward(db, is_train=False)
+        pred = self.model.get_outputs()[-1].asnumpy()[0]
+        if pred.shape[0] >= 3000:
+            pred = pred.reshape((-1, 3))
+        else:
+            pred = pred.reshape((-1, 2))
+        pred[:, 0:2] += 1
+        pred[:, 0:2] *= (self.image_size[0] // 2)
+        if pred.shape[1] == 3:
+            pred[:, 2] *= (self.image_size[0] // 2)
 
-            IM = cv2.invertAffineTransform(M)
-            pred = trans_points(pred, IM)
-            out.append(pred)
+        IM = cv2.invertAffineTransform(M)
+        pred = trans_points(pred, IM)
+        out.append(pred)
         return out
 
 
