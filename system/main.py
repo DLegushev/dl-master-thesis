@@ -8,14 +8,14 @@ import tensorflow as tf
 import numpy as np
 
 from detect_keypoints import Handler
-from utils import LABELS_DICT_EMO, FACE_MODEL_PATH, KEYPOINTS_MODEL_PATH, EMOTIONS_MODEL_PATH, VIDEO_PATH, test_points, \
-    parse_args, read_embendings, compare_emdbs, draw_keypoints, put_text
+from utils import LABELS_DICT_EMO, FACE_MODEL_PATH, KEYPOINTS_MODEL_PATH, VIDEO_PATH, \
+    parse_args, read_embendings, compare_emdbs, draw_keypoints, put_text, preprocess, get_model_name
 
 from tensorflow.compat.v1.keras.backend import set_session
 
 args = parse_args()
 
-# setting initialization
+# settings initialization
 os.environ["MXNET_CUDNN_AUTOTUNE_DEFAULT"] = "0"
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
@@ -31,6 +31,7 @@ if __name__ == "__main__":
 
     if args.mode == "emo":
         handler = Handler(KEYPOINTS_MODEL_PATH, 0, ctx_id=0, det_size=640)
+        EMOTIONS_MODEL_PATH = get_model_name(args)
         clf = keras.models.load_model(EMOTIONS_MODEL_PATH)
     elif args.mode == "reco":
         embds_dict = read_embendings("data/", model)
@@ -66,25 +67,8 @@ if __name__ == "__main__":
 
                     points = points[0]
 
-                    # crop stage
-                    x1, y1 = int(np.min(points[:, 0])), int(np.min(points[:, 1]))
-                    x2, y2 = int(np.max(points[:, 0])), int(np.min(points[:, 1]))
-                    x3, y3 = int(np.min(points[:, 0])), int(np.max(points[:, 1]))
-                    x4, y4 = int(np.max(points[:, 0])), int(np.max(points[:, 1]))
-                    x1, y1, x2, y2, x3, y3, x4, y4 = test_points([[x1, y1], [x2, y2], [x3, y3], [x4, y4]], frame.shape)
-
-                    crop_img = frame[min(y1, y2):max(y3, y4), min(x1, x3):max(x2, x4)]
-
-                    # if problems with keypoints detection
-                    if crop_img.size == 0:
-                        points = test_points([[x, y], [x + w, y + h]], frame.shape)
-                        crop_img = frame[points[0][1]:points[1][1], points[0][0]:points[1][0]]\
-
-                    crop_img = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY).astype(np.float32)
-                    crop_img = cv2.resize(crop_img, (128, 128))
-                    crop_img /= 255.
-
-                    emo = clf.predict(np.expand_dims(crop_img, 0))
+                    preproc_img = preprocess(args, points, frame, [x, y, w, h])
+                    emo = clf.predict(np.expand_dims(preproc_img, 0))
                     display_img = put_text(display_img, LABELS_DICT_EMO[np.argmax(emo[0])], (x, y - 20))
 
                 elif args.mode == "reco":
