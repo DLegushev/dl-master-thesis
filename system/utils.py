@@ -13,7 +13,7 @@ EMOTIONS_MODEL_PATH_CROP = "/home/dl/1_study/0_BSU/master_thesis/weights/emotion
                            "/KerasEffNetB0Gray_128x128_batch_16_withoutDP_ALL_aug_crop_FER_upscale/"
 EMOTIONS_MODEL_PATH_DEWARP = "/home/dl/1_study/0_BSU/master_thesis/weights/emotion" \
                              "/KerasEffNetB0Gray_128x128_batch_16_withoutDP_ALL_aug_dewarp_FER_upscale/"
-VIDEO_PATH = "/home/dl/1_study/0_BSU/master_thesis/videos/res/6.mp4"
+VIDEO_PATH = "/home/dl/1_study/0_BSU/master_thesis/videos/res/9.mp4"
 
 LABELS_DICT_EMO = {
     0: "angry",
